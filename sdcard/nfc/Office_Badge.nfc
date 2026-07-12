@@ -1,0 +1,6 @@
+Filetype: Flipper NFC device
+Version: 4
+Device type: MIFARE Classic 1K
+UID: 04 A2 3B 5C
+ATQA: 00 04
+SAK: 08

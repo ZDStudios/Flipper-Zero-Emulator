@@ -1,0 +1,40 @@
+:name: Flipper Zero (STM32WB55) - EXPERIMENTAL bring-up
+:description: Loads a Flipper firmware image onto the hand-written WB55 platform.
+
+# Usage:
+#   renode renode/flipper.resc -e "set bin @sdcard/firmware/official/firmware.bin; start"
+# or let tools/firmware_manager.py build the command for you.
+
+$name?="Flipper-WB55"
+# Path to the firmware. Override with:  set bin @/path/to/firmware.bin
+$bin?=@sdcard/firmware/firmware.bin
+
+using sysbus
+mach create $name
+machine LoadPlatformDescription @renode/stm32wb55.repl
+
+# --- Optional: force clock/flash "ready" bits so early init loops don't spin ---
+# These addresses/values are placeholders - fill in from RM0434 during bring-up.
+# Example (RCC_CR HSIRDY-style): sysbus Tag <addr> <size> "RCC_CR" 0xFFFFFFFF
+# sysbus Tag <0x58000000 0x4> "RCC_CR" 0x0300FB03
+
+# --- Load firmware (raw .bin at flash base; set SP/PC from the vector table) ---
+macro reset
+"""
+    sysbus LoadBinary $bin 0x08000000
+    cpu VectorTableOffset 0x08000000
+    cpu SP `sysbus ReadDoubleWord 0x08000000`
+    cpu PC `sysbus ReadDoubleWord 0x08000004`
+"""
+runMacro $reset
+
+# If you have an ELF instead (built from source), use this in place of the macro:
+#   sysbus LoadELF $bin
+#   cpu VectorTableOffset 0x08000000
+
+# --- Once usart1 is a REAL model (UART.STM32F7_USART), open its console: -------
+# showAnalyzer sysbus.usart1
+
+echo ""
+echo "Loaded '$bin' onto STM32WB55 (experimental). Type 'start' to run,"
+echo "'cpu PC' to inspect, 'sysbus' to view the memory map. See RENODE.md."

@@ -1,0 +1,126 @@
+// -----------------------------------------------------------------------------
+// STM32WB55RG platform for Renode  --  Flipper Zero bring-up (EXPERIMENTAL)
+// -----------------------------------------------------------------------------
+// The STM32WB55 is NOT a stock Renode platform (Renode ships F/G/H/L/WBA/W108,
+// not WB55), and no public "Flipper in Renode" project exists. This file is a
+// hand-written bring-up skeleton: correct memory map + CPU/NVIC + RAM/flash, with
+// every peripheral register block backed by plain memory so the platform LOADS
+// and the CPU can start fetching. Peripherals as plain memory read back what was
+// written - enough to get past many init writes, but "wait for HW ready-flag"
+// loops will stall until you replace that block with a real model (see the
+// commented model name on each block) and, where needed, force ready bits with
+// `sysbus Tag` in flipper.resc.
+//
+// Addresses are from RM0434 (STM32WB55 reference manual). This is a starting
+// point for reverse-engineering a boot, not a finished machine. See RENODE.md.
+// -----------------------------------------------------------------------------
+
+cpu: CPU.CortexM @ sysbus
+    cpuType: "cortex-m4"
+    nvic: nvic
+
+nvic: IRQControllers.NVIC @ sysbus 0xE000E000
+    systickFrequency: 64000000
+    IRQ -> cpu@0
+
+// --- Memory -----------------------------------------------------------------
+// 1 MB flash. Firmware is loaded here; VTOR is set to 0x08000000 in the .resc.
+flash: Memory.MappedMemory @ sysbus 0x08000000
+    size: 0x100000
+
+// System memory (bootloader ROM region) - present so option-byte/boot reads work.
+system_memory: Memory.MappedMemory @ sysbus 0x1FFF0000
+    size: 0x7000
+
+// SRAM1 192 KB, SRAM2a 32 KB, SRAM2b 32 KB (SRAM2 is shared with the radio).
+sram1: Memory.MappedMemory @ sysbus 0x20000000
+    size: 0x30000
+sram2a: Memory.MappedMemory @ sysbus 0x20030000
+    size: 0x8000
+sram2b: Memory.MappedMemory @ sysbus 0x20038000
+    size: 0x8000
+
+// --- Clock / power / flash controller (APB, AHB) ----------------------------
+// TODO: swap for Miscellaneous.STM32F4_RCC (approx) once ready-flag polls are
+// understood. On WB, RCC lives at 0x58000000 (NOT 0x40021000 like F4).
+rcc: Memory.MappedMemory @ sysbus 0x58000000
+    size: 0x400
+pwr: Memory.MappedMemory @ sysbus 0x58000400
+    size: 0x400
+flash_ctrl: Memory.MappedMemory @ sysbus 0x58004000
+    size: 0x400
+exti: Memory.MappedMemory @ sysbus 0x58000800   // IRQControllers.STM32F4_EXTI
+    size: 0x400
+
+// Inter-core / radio: IPCC + HSEM + the M0+ (FUS/BLE) coprocessor.  None of the
+// radio stack is emulated - see RENODE.md. Provided as memory so accesses fault
+// gracefully rather than aborting the machine.
+ipcc: Memory.MappedMemory @ sysbus 0x58000C00
+    size: 0x400
+hsem: Memory.MappedMemory @ sysbus 0x58001400
+    size: 0x400
+rtc: Memory.MappedMemory @ sysbus 0x40002800    // Timers.STM32F4_RTC
+    size: 0x400
+
+// --- GPIO ports (AHB2 @ 0x48000000, 0x400 stride) ---------------------------
+// TODO: swap for GPIOPort.STM32F4GPIOPort to drive the button matrix / display
+// chip-select lines during real bring-up.
+gpioa: Memory.MappedMemory @ sysbus 0x48000000
+    size: 0x400
+gpiob: Memory.MappedMemory @ sysbus 0x48000400
+    size: 0x400
+gpioc: Memory.MappedMemory @ sysbus 0x48000800
+    size: 0x400
+gpiod: Memory.MappedMemory @ sysbus 0x48000C00
+    size: 0x400
+gpioe: Memory.MappedMemory @ sysbus 0x48001000
+    size: 0x400
+gpioh: Memory.MappedMemory @ sysbus 0x48001C00
+    size: 0x400
+
+// --- Serial / SPI / I2C -----------------------------------------------------
+// USART1 is the Flipper's debug/CLI UART - the first thing to turn into a real
+// model (UART.STM32F7_USART) so you get console output while bringing up boot.
+usart1: Memory.MappedMemory @ sysbus 0x40013800  // UART.STM32F7_USART
+    size: 0x400
+lpuart1: Memory.MappedMemory @ sysbus 0x40008000 // UART.STM32F7_USART
+    size: 0x400
+// SPI1 -> display (ST756x) + SD card; SPI2 -> sub-GHz (CC1101) on the Flipper.
+spi1: Memory.MappedMemory @ sysbus 0x40013000    // SPI.STM32SPI
+    size: 0x400
+spi2: Memory.MappedMemory @ sysbus 0x40003800    // SPI.STM32SPI
+    size: 0x400
+i2c1: Memory.MappedMemory @ sysbus 0x40005400
+    size: 0x400
+i2c3: Memory.MappedMemory @ sysbus 0x40005c00
+    size: 0x400
+
+// --- Timers -----------------------------------------------------------------
+tim1: Memory.MappedMemory @ sysbus 0x40012C00    // Timers.STM32_Timer
+    size: 0x400
+tim2: Memory.MappedMemory @ sysbus 0x40000000    // Timers.STM32_Timer
+    size: 0x400
+tim16: Memory.MappedMemory @ sysbus 0x40014400
+    size: 0x400
+tim17: Memory.MappedMemory @ sysbus 0x40014800
+    size: 0x400
+lptim1: Memory.MappedMemory @ sysbus 0x40007C00
+    size: 0x400
+lptim2: Memory.MappedMemory @ sysbus 0x40009400
+    size: 0x400
+
+// --- Misc peripherals firmware touches early --------------------------------
+rng: Memory.MappedMemory @ sysbus 0x48005000
+    size: 0x400
+adc1: Memory.MappedMemory @ sysbus 0x50040000
+    size: 0x400
+dma1: Memory.MappedMemory @ sysbus 0x40020000
+    size: 0x400
+dma2: Memory.MappedMemory @ sysbus 0x40020400
+    size: 0x400
+dmamux: Memory.MappedMemory @ sysbus 0x40020800
+    size: 0x400
+crc: Memory.MappedMemory @ sysbus 0x40023000
+    size: 0x400
+dbgmcu: Memory.MappedMemory @ sysbus 0xE0042000
+    size: 0x400

@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# PyFlipper runtime state (keep sample dumps, ignore user settings)
+sdcard/.pyflipper/
+
+# Local Renode build (large; install/download separately) + firmware images
+renode_bin/
+sdcard/firmware/*/
+!sdcard/firmware/README.md
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,10 @@
+REM Demo DuckyScript - shown line-by-line, NOT injected into your PC.
+REM Real HID injection is done by an ESP32 acting as a USB keyboard.
+DELAY 500
+GUI r
+DELAY 300
+STRING notepad
+ENTER
+DELAY 500
+STRING Hello from PyFlipper Bad USB!
+ENTER
