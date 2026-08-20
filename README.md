@@ -65,6 +65,26 @@ simulation.
 It works on a bare board with no radio modules attached, so you can check the USB
 link first before wiring anything up, then turn modules on one at a time.
 
+## Running real Flipper apps (fapemu)
+
+There is a second, separate thing in this repo: [`fapemu`](fapemu/), which runs
+actual `.fap` applications — the same files you would copy onto a Flipper's SD
+card — on your computer.
+
+    python -m fapemu run apps/arkanoid.fap
+
+It loads the `.fap`, relocates it, and executes its real ARM code on an emulated
+Cortex-M4, trapping the firmware calls it makes and answering them in Python. So
+the app itself genuinely runs; only the firmware underneath is substituted.
+
+Of fourteen apps pulled from the official catalog, all fourteen load and run,
+and eleven of them play properly - Arkanoid, Tetris, Snake, Game 15, Analog
+Clock and friends. Apps built on the higher-level ViewDispatcher/scene framework
+load and report what they need but do not run yet. See
+[fapemu/README.md](fapemu/README.md) for the details and the full list of limits.
+
+![Arkanoid running](docs/img/fapemu/arkanoid.png)
+
 ## Running the real firmware (experimental)
 
 Separate from everything above, there's a rough attempt at booting the actual

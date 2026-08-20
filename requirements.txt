@@ -1,2 +1,7 @@
 pygame-ce>=2.5
 pyserial>=3.5
+
+# fapemu (running Flipper .fap apps) also needs:
+unicorn>=2.1
+pyelftools>=0.31
+capstone>=5.0

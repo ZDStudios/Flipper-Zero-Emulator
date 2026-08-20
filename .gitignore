@@ -13,6 +13,9 @@ renode_bin/
 sdcard/firmware/*/
 !sdcard/firmware/README.md
 
+# Third-party .fap apps dropped in for fapemu (not ours to redistribute)
+apps/*.fap
+
 # OS / editor
 .DS_Store
 Thumbs.db

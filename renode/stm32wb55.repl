@@ -23,6 +23,11 @@ nvic: IRQControllers.NVIC @ sysbus 0xE000E000
     systickFrequency: 64000000
     IRQ -> cpu@0
 
+// Data Watchpoint & Trace unit. The firmware busy-waits on DWT->CYCCNT for
+// microsecond delays (furi_hal_cortex/delay); without this it spins forever.
+dwt: Miscellaneous.DWT @ sysbus 0xE0001000
+    frequency: 64000000
+
 // --- Memory -----------------------------------------------------------------
 // 1 MB flash. Firmware is loaded here; VTOR is set to 0x08000000 in the .resc.
 flash: Memory.MappedMemory @ sysbus 0x08000000
@@ -79,10 +84,9 @@ gpioh: Memory.MappedMemory @ sysbus 0x48001C00
     size: 0x400
 
 // --- Serial / SPI / I2C -----------------------------------------------------
-// USART1 is the Flipper's debug/CLI UART - the first thing to turn into a real
-// model (UART.STM32F7_USART) so you get console output while bringing up boot.
-usart1: Memory.MappedMemory @ sysbus 0x40013800  // UART.STM32F7_USART
-    size: 0x400
+// USART1 is the Flipper's debug/CLI UART. Real model so we get console output.
+usart1: UART.STM32F7_USART @ sysbus 0x40013800
+    frequency: 64000000
 lpuart1: Memory.MappedMemory @ sysbus 0x40008000 // UART.STM32F7_USART
     size: 0x400
 // SPI1 -> display (ST756x) + SD card; SPI2 -> sub-GHz (CC1101) on the Flipper.
@@ -110,6 +114,8 @@ lptim2: Memory.MappedMemory @ sysbus 0x40009400
     size: 0x400
 
 // --- Misc peripherals firmware touches early --------------------------------
+syscfg: Memory.MappedMemory @ sysbus 0x40010000
+    size: 0x400
 rng: Memory.MappedMemory @ sysbus 0x48005000
     size: 0x400
 adc1: Memory.MappedMemory @ sysbus 0x50040000
